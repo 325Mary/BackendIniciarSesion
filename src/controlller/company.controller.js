@@ -11,7 +11,8 @@ const {
 Controller.createCompany = async (req, res) => {
   try {
     const companyData = req.body;
-    const newCompany = await newCompanyService(companyData); // Corregir aquí
+    const pdfFile = req.file; // Obtener el archivo PDF subido
+    const newCompany = await newCompanyService(companyData, pdfFile); // Pasar el archivo PDF a la función
     res.status(201).json(newCompany);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -29,8 +30,12 @@ Controller.approveCompany = async (req, res) => {
 };
 
 Controller.getCompanies = async (req, res) => {
-  const listCompanies = await getCompanies();
-  res.json(listCompanies);
+  try {
+    const companies = await getCompanies();
+    res.json(companies);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 };
 
 

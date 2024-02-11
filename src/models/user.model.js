@@ -3,13 +3,15 @@ const {model, Schema} = require('mongoose')
 const userSchema= new Schema({
     username: {type: String,
         required:[false, 'nombre requerido']},
+    identification: {type: String,
+        required: [true, 'cedula es requerida']},
     tenantId: {type: Schema.Types.ObjectId,
         required: [false, 'Nit de la empresa requerido'],        },
     email: {type: String,
         required:[true, 'correo requerido'],
         unique: true},
     password: {type: String,
-        required: [true, 'constraseña requerida']},
+        required: [false, 'constraseña requerida']},
         provisionalPassword: String,
     imgfirme: {type: String,
         required:[false, 'Imagen de firma es requerida']},
@@ -21,8 +23,7 @@ const userSchema= new Schema({
     required:[true, 'Rol es requerido']},
     status: {
         type: String,
-        enum: ['inactivo', 'activo'],
-        default: 'inactivo'
+        enum: ['inactivo', 'activo', 'pendiente'],
     },
     firstLogin: { type: Boolean, default: true },
     resetCode: { type: String, default: null },

@@ -27,11 +27,16 @@ const sendEmail = async ({ to, subject, html }) => {
   }
 };
 
-const newCompanyService = async (companyData) => {
+const newCompanyService = async (companyData, pdfFile) => {
   companyData.estado = 'pendiente'; // Establecer estado predeterminado
   try {
-    const newCompany = await Company.create(companyData);
+    if (pdfFile) {
+      // Si se proporciona un archivo adjunto, asigna la ruta del archivo al campo pdfRunt
+      companyData.pdfRunt = pdfFile.path;
+    }
 
+    const newCompany = await Company.create(companyData);
+    
     // Construir el mensaje HTML excluyendo estado e ID
     const messageHtml = `
     <p>Los datos de la nueva empresa son:</p>
@@ -41,13 +46,6 @@ const newCompanyService = async (companyData) => {
       <li>NIT: ${newCompany.tenantId}</li>
       <li>Email: ${newCompany.email}</li>
       <li>Dirección: ${newCompany.direction}</li>
-      <li>Runt: ${newCompany.pdfRunt }</li>
-      <p>***************************************<p>
-      <li>Nombre de Gerente: ${newCompany.nameManager} <li>
-      <li>Telefono de Gerente: ${newCompany.telephonePersonal}<li>
-      <li>DIreccion de Gerente: ${newCompany.directionPersonal}<li>
-      <li>Correo del Gerente: ${newCompany.emailPersonal}
-    </ul>
     </ul>
     `;
 
@@ -65,10 +63,7 @@ const newCompanyService = async (companyData) => {
 
 const approveCompany = async (companyId) => {
   try {
-    const company = await Company.findByIdAndUpdate(companyId, { estado: 'aprobado' }, { new: true,
-      omitUndefined: true, // Omitir campos no definidos para que no se actualicen
-      select: '-nameManager -telephonePersonal -directionPersonal -emailPersonal'
-     });
+    const company = await Company.findByIdAndUpdate(companyId, { estado: 'aprobado' }, );
 
     // Construir el mensaje HTML excluyendo estado e ID
     const messageHtml = `

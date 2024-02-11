@@ -25,33 +25,14 @@ const companySchema = new Schema({
     },
     pdfRunt: {
         type: String,
-        required: [true, 'PDF es requerido']
+        required: [false, 'PDF es requerido']
     },
     estado: {
         type: String,
         enum: ['pendiente', 'aprobado', 'denegado'],
         default: 'pendiente'
     },
-    nameManager: {
-        type:String, 
-        required: [false, 'nombre de gerente es requerido']
-    },
-    telephonePersonal: {
-        type: String,
-        required:[false, 'Telefono personal es requerido']
-    },
-    directionPersonal: {
-        type: String,
-        required:[false, 'direccion personal es requerida']
-    },
-    emailPersonal:{
-        type: String,
-        required: [false, 'correo personal es requerido']
-    },
-    passwordManager: {
-        type: String,
-        default: 'gtk-lsw'
-    }
+    
 });
 
 module.exports = model('company', companySchema, 'companys');

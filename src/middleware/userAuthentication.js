@@ -1,31 +1,35 @@
 const jwt = require('jsonwebtoken');
+const ResponseStructure = require('../helpers/ResponseStructure');
+const  listaNegraService  = require('../services/blackList.service');
 
-const verificarToken = (req, res, next) => {
+const validarTokenMiddleware = async (req, res, next) => {
   try {
-    const token = req.headers.authorization;
+    if (!req || !req.headers || !req.headers.authorization) {
+      return res.status(401).json({ error: 'Token no proporcionado' });
+    }
 
+    const token = req.headers.authorization;
     if (!token) {
       return res.status(401).json({ error: 'Token no proporcionado' });
     }
 
-    // Extraer el token sin el prefijo Bearer
     const tokenBearer = token.split(' ')[1];
-
-    const decoded = jwt.verify(tokenBearer, process.env.JWT_SECRET);
-
-    if (!decoded) {
-      return res.status(401).json({ error: 'Token no válido' });
+    const tokenEnListaNegra = await listaNegraService.tokenEnListaNegra(token);
+    if (tokenEnListaNegra) {
+      return res.status(401).json({ error: 'El token está en la lista negra' });
     }
 
-    // Asignar el usuario decodificado a la solicitud
-    req.user = decoded;
-
-    next();
-
-  } catch (e) {
-    console.error('Error al verificar el token:', e);
-    res.status(401).json({ error: 'Token no válido' });
+    jwt.verify(tokenBearer, process.env.JWT_SECRET, (err, decodedToken) => {
+      if (err) {
+        return res.status(401).json({ error: 'Token no válido' });
+      }
+      req.user = decodedToken;
+      next();
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: 'Error en validarTokenMiddleware' });
   }
 };
 
-module.exports = verificarToken;
+module.exports = validarTokenMiddleware;

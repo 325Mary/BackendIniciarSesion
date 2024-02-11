@@ -6,6 +6,7 @@ const { createUser,
   generarCodigoRestablecimiento,
   enviarCorreoRestablecimiento,
   restablecerContraseña,
+  logout
   } = require('../services/user.services');
 
 const User = require('../models/user.model');
@@ -14,7 +15,7 @@ const companyModel = require('../models/compay.model')
 
 const rolModel= require ('../models/roles.model')
 const bcrypt = require('bcrypt');
-
+const ResponseStructure = require('../helpers/ResponseStructure')
 
 
 
@@ -127,6 +128,8 @@ controller.restablecerContraseña = async (req, res) => {
     usuario.password = await bcrypt.hash(nuevaContraseña, 12);
     usuario.resetCode = null;
     usuario.resetExpires = null;
+    usuario.firstLogin = false;
+
     await usuario.save();
 
     console.log(`Contraseña restablecida con éxito para ${email}`);
@@ -137,5 +140,26 @@ controller.restablecerContraseña = async (req, res) => {
   }
 };
 
+
+
+//cerrar sesion
+controller.logout =async(req,res)=>{
+  try {
+    const token = req.headers.authorization;
+    // Realizar el logout usando el servicio
+    const result = await logout(token);
+    // Respondemos con éxito
+    ResponseStructure.status = 200;
+    ResponseStructure.message = 'Logout exitoso';
+    ResponseStructure.data = result;
+    res.status(200).json(ResponseStructure);
+  } catch (error) {
+    // Manejar errores
+    ResponseStructure.status = 500;
+    ResponseStructure.message = 'Error al cerrar sesión';
+    ResponseStructure.data = error.message;
+    res.status(500).json(ResponseStructure);
+  }
+}
 
 module.exports = controller;

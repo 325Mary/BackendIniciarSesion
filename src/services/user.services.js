@@ -3,32 +3,73 @@ const User = require('../models/user.model');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
+const Role= require('../models/roles.model')
+const listaNegraService = require('../services/blackList.service');
+const sendEmailUsers = require('../helpers/sendEmailUser')
+
+// Tu lógica para el servicio de usuario aquí
 
 
 // Crear usuarios
 const createUser = async (req, res) => {
   try {
-    req.body.password = await bcrypt.hash(req.body.password, 12);
+    const defaultPassword = req.body.identification; // Utilizar la identificación como contraseña por defecto
 
+    // Hashear la contraseña por defecto antes de guardarla en la base de datos
+    const hashedPassword = await bcrypt.hash(defaultPassword, 12);
+
+    // Buscamos el rol del usuario por su ID
+    const role = await Role.findById(req.body.rol);
+
+    // Establecer el estado del usuario según el rol
+    let status = 'activo'; // Por defecto, el estado es "activo"
+if (role && role.nameRol !== 'SuperUsuario')
+if(role && role.nameRol !== 'Contador')
+{
+  status = 'pendiente'; // Si no es "SuperUsuario" ni "Contador", establecemos el estado como "pendiente"
+}
+
+    // Crear el usuario
     const user = await User.create({
       username: req.body.username,
+      identification: req.body.identification,
       empresa: req.body.empresa,
       email: req.body.email,
-      password: req.body.password,
+      password: hashedPassword,
       telephone: req.body.telephone,
       direction: req.body.direction,
       imgfirme:  req.file ? req.file.path : null,
-      status: req.status,
+      status: status,
       rol: req.body.rol,
       firstLogin: true // Nuevo campo para verificar el primer inicio de sesión
     });
 
+    // Datos del usuario a enviar por correo
+    let userData = {
+      username: user.username,
+      identification: user.identification,
+      empresa: user.empresa,
+      email: user.email,
+      telephone: user.telephone,
+      direction: user.direction,
+      status: user.status
+    };
+
+    // Si el rol del usuario es "contador", enviar todos los datos
+    if (role && role.nameRol === 'Contador') {
+      await sendEmailUsers(userData)
+
+    }
+
     res.json({ user });
-  } catch (e) {
-    console.error('Error:', e);
-    res.status(500).json({ error: 'Internal server error', message: e.message });
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Internal server error', message: error.message });
   }
 };
+
+
+
 
 //activar usuario
 const activeUser = async (userId) => {
@@ -61,7 +102,7 @@ const loginUser = async (req, res) => {
     }
 
     // Si el inicio de sesión es exitoso y no es el primer inicio de sesión, enviar el token
-    res.json({ success: 'Inicio de sesión correcto', token: crearToken(user) });
+    res.json({ success: 'Inicio de sesión correcto', token: crearToken(user)  });
 
     
   } catch (e) {
@@ -73,13 +114,19 @@ const loginUser = async (req, res) => {
 
 
 // Crear token
+// Crear token
 function crearToken(user) {
-  const payload = {
-    user_id: user._id,
-    user_roles: [user.rol]
-  };
-  return jwt.sign(payload,  process.env.JWT_SECRET, { expiresIn: '1h' });
+  const { _id, email, tenantId, rol } = user;
+  const payload = { userId: _id, email, tenantId, rol };
+  console.log("Atributos del payload:", payload); // Imprimir el payload
+  const secret = process.env.JWT_SECRET;
+  const options = { expiresIn: '1h' };
+  const token = jwt.sign(payload, secret, options);
+  return token;
 }
+
+
+
 
 // Listar Usuarios
 const getUsers = async () => {
@@ -165,6 +212,8 @@ const restablecerContraseña = async (email, codigo, nuevaContraseña) => {
     usuario.password = await bcrypt.hash(nuevaContraseña, 12);
     usuario.resetCode = null;
     usuario.resetExpires = null; // Limpiar también la marca de tiempo de expiración
+    usuario.firstLogin = false;
+    
     await usuario.save();
 
     return { success: 'Contraseña restablecida con éxito' };
@@ -175,6 +224,28 @@ const restablecerContraseña = async (email, codigo, nuevaContraseña) => {
 }
 
 
+//cerrar sesion
+const logout = async (token) => {
+  try {
+    // Verificar si el token está en la lista negra en la base de datos
+    const tokenEnListaNegra = await listaNegraService.tokenEnListaNegra(token);
+    if (tokenEnListaNegra) {
+      console.log('Token ya revocado.');
+      throw new Error('Token already revoked.');
+    }
+
+    // Agregar el token a la lista negra
+    await listaNegraService.agregarToken(token);
+    console.log('Token agregado a la lista negra:', token);
+
+    // Otras operaciones de cierre de sesión según sea necesario
+
+    return { success: true, message: 'Logout successful.' };
+  } catch (error) {
+    console.error(error);
+    throw new Error(`Error al cerrar sesión: ${error.message}`);
+  }
+}
 
 
 module.exports = {
@@ -186,4 +257,5 @@ module.exports = {
   generarCodigoRestablecimiento,
   enviarCorreoRestablecimiento,
   restablecerContraseña,
+  logout
 };
