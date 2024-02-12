@@ -10,7 +10,7 @@ routes.post('/registrer', upload.single('imgfirme'),   postUser);
 routes.post('/iniciarSesion', postLogin);
 routes.get('/getUsers',validarTokenMiddleware , checkRol(['SuperUsuario','Gerente','Contador']),getUsers);
 routes.put('/user/:id/active', validarTokenMiddleware, checkRol(['SuperUsuario', 'Gerente']),  activeUser);
-routes.put('/users/:id/change-password',validarTokenMiddleware,  changePassword);
+routes.put('/users/:id/change-password',  changePassword);
 routes.post('/solicitar-restablecimiento', solicitarRestablecimiento);
 routes.post('/restablecer-password', restablecerContraseña);
 routes.post('/cerrar_sesion',validarTokenMiddleware,  logout)

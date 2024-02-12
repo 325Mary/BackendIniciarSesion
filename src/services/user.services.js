@@ -74,7 +74,12 @@ if(role && role.nameRol !== 'Contador')
 //activar usuario
 const activeUser = async (userId) => {
   try {
+    // Activar el usuario en la base de datos
     const user = await User.findByIdAndUpdate(userId, { status: 'activo' }, { new: true }); 
+    
+    // Enviar correo electrónico de confirmación
+    await sendEmailUsers(user);
+    
     return user; 
   } catch (error) {
     throw new Error("Error al activar el usuario: " + error.message);
